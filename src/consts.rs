@@ -1,0 +1,272 @@
+use embedded_hal::i2c::SevenBitAddress;
+
+/**
+ * @brief Default I2C address of VL53L7CX sensor. Can be changed using function
+ * vl53l7cx_set_i2c_address() function is called.
+ */
+#[allow(dead_code)]
+pub const VL53L7CX_DEFAULT_I2C_ADDRESS: SevenBitAddress = 0x52 >> 1;
+
+/**
+ * @brief Macro VL53L7CX_RESOLUTION_4X4 or VL53L7CX_RESOLUTION_8X8 allows
+ * setting sensor in 4x4 mode or 8x8 mode, using function
+ * vl53l7cx_set_resolution().
+ */
+pub const VL53L7CX_RESOLUTION_4X4: u8 = 16;
+pub const VL53L7CX_RESOLUTION_8X8: u8 = 64;
+
+/**
+ * @brief Macro VL53L7CX_STATUS_OK indicates that VL53L5 sensor has no error.
+ * Macro VL53L7CX_STATUS_ERROR indicates that something is wrong (value,
+ * I2C access, ...). Macro VL53L7CX_MCU_ERROR is used to indicate a MCU issue.
+ */
+#[allow(dead_code)]
+pub const VL53L7CX_STATUS_OK: u8 = 0;
+#[allow(dead_code)]
+pub const VL53L7CX_STATUS_TIMEOUT_ERROR: u8 = 1;
+#[allow(dead_code)]
+pub const VL53L7CX_STATUS_CORRUPTED_FRAME: u8 = 2;
+#[allow(dead_code)]
+pub const VL53L7CX_STATUS_LASER_SAFETY: u8 = 3;
+#[allow(dead_code)]
+pub const VL53L7CX_MCU_ERROR: u8 = 66;
+#[allow(dead_code)]
+pub const VL53L7CX_STATUS_INVALID_PARAM: u8 = 127;
+#[allow(dead_code)]
+pub const VL53L7CX_STATUS_ERROR: u8 = 255;
+
+/**
+ * @brief Definitions for Range results block headers
+ */
+pub const VL53L7CX_START_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0x0000000D } else { 0x0000000D };
+pub const VL53L7CX_METADATA_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0x54B400C0 } else { 0x54B400C0 };
+pub const VL53L7CX_COMMONDATA_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0x54C00040 } else { 0x54C00040 };
+pub const VL53L7CX_AMBIENT_RATE_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0x54D00104 } else { 0x54D00104 };
+pub const VL53L7CX_SPAD_COUNT_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0x55D00404 } else { 0x57D00401 };
+pub const VL53L7CX_NB_TARGET_DETECTED_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xCF7C0401 } else { 0x55D00404 };
+pub const VL53L7CX_SIGNAL_RATE_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xCFBC0404 } else { 0x58900404 };
+pub const VL53L7CX_RANGE_SIGMA_MM_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xD2BC0402 } else { 0x64900402 };
+pub const VL53L7CX_DISTANCE_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xD33C0402 } else { 0x66900402 };
+pub const VL53L7CX_REFLECTANCE_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xD43C0401 } else { 0x6A900401 };
+pub const VL53L7CX_TARGET_STATUS_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xD47C0401 } else { 0x6B900401 };
+pub const VL53L7CX_MOTION_DETECT_BH: u32 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xCC5008C0 } else { 0xCC5008C0 };
+
+#[allow(dead_code)]
+pub const VL53L7CX_METADATA_IDX: u16 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0x54B4 } else { 0x54B4 };
+#[allow(dead_code)]
+pub const VL53L7CX_SPAD_COUNT_IDX: u16 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0x55D0 } else { 0x55D0 };
+#[allow(dead_code)]
+pub const VL53L7CX_AMBIENT_RATE_IDX: u16 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0x54D0 } else { 0x54D0 };
+#[allow(dead_code)]
+pub const VL53L7CX_NB_TARGET_DETECTED_IDX: u16 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xCF7C } else { 0x57D0 };
+#[allow(dead_code)]
+pub const VL53L7CX_SIGNAL_RATE_IDX: u16 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xCFBC } else { 0x5890 };
+#[allow(dead_code)]
+pub const VL53L7CX_RANGE_SIGMA_MM_IDX: u16 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xD2BC } else { 0x6490 };
+#[allow(dead_code)]
+pub const VL53L7CX_DISTANCE_IDX: u16 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xD33C } else { 0x6690 };
+#[allow(dead_code)]
+pub const VL53L7CX_REFLECTANCE_EST_PC_IDX: u16 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xD43C } else { 0x6A90 };
+#[allow(dead_code)]
+pub const VL53L7CX_TARGET_STATUS_IDX: u16 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xD47C } else { 0x6B90 };
+#[allow(dead_code)]
+pub const VL53L7CX_MOTION_DETEC_IDX: u16 = if VL53L7CX_NB_TARGET_PER_ZONE == 1 { 0xCC50 } else { 0xCC50 };
+
+pub const VL53L7CX_NVM_DATA_SIZE: usize = 492;
+pub const VL53L7CX_CONFIGURATION_SIZE: usize = 972;
+pub const VL53L7CX_OFFSET_BUFFER_SIZE: usize = 488;
+pub const VL53L7CX_XTALK_BUFFER_SIZE: usize = 776;
+
+/**
+ * @brief Macro VL53L7CX_TARGET_ORDER_STRONGEST or VL53L7CX_TARGET_ORDER_CLOSEST
+ *  are used to select the target order for data output.
+ */
+pub const VL53L7CX_TARGET_ORDER_CLOSEST: u8 = 1;
+pub const VL53L7CX_TARGET_ORDER_STRONGEST: u8 = 2;
+/**
+ * @brief Macro VL53L7CX_RANGING_MODE_CONTINUOUS and
+ * VL53L7CX_RANGING_MODE_AUTONOMOUS are used to change the ranging mode.
+ * Autonomous mode can be used to set a precise integration time, whereas
+ * continuous is always maximum.
+ */
+pub const VL53L7CX_RANGING_MODE_CONTINUOUS: u8 = 1;
+pub const VL53L7CX_RANGING_MODE_AUTONOMOUS: u8 = 3;
+/**
+ * @brief The default power mode is VL53L7CX_POWER_MODE_WAKEUP. User can choose two
+ * different modes to save power consumption when is the device
+ * is not used:
+ * - VL53L7CX_POWER_MODE_SLEEP: This mode retains the firmware and the configuration. It
+ * is recommended when the device needs to quickly wake-up.
+ * - VL53L7CX_POWER_MODE_DEEP_SLEEP: This mode clears all memory, by consequence the firmware,
+ * the configuration and the calibration are lost. It is recommended when the device sleeps during
+ * a long time as it consumes a very low current consumption.
+ * Both modes can be changed using function vl53l7cx_set_power_mode().
+ */
+pub const VL53L7CX_POWER_MODE_SLEEP: u8 = 0;
+pub const VL53L7CX_POWER_MODE_WAKEUP: u8 = 1;
+/**
+ * @brief Inner Macro for API. Not for user, only for development.
+ */
+
+pub const VL53L7CX_DCI_ZONE_CONFIG: u16 = 0x5450;
+pub const VL53L7CX_DCI_FREQ_HZ: u16 = 0x5458;
+pub const VL53L7CX_DCI_INT_TIME: u16 = 0x545C;
+pub const VL53L7CX_DCI_FW_NB_TARGET: u16 = 0x5478;
+pub const VL53L7CX_DCI_RANGING_MODE: u16 = 0xAD30;
+pub const VL53L7CX_DCI_DSS_CONFIG: u16 = 0xAD38;
+pub const VL53L7CX_DCI_TARGET_ORDER: u16 = 0xAE64;
+pub const VL53L7CX_DCI_SHARPENER: u16 = 0xAED8;
+pub const VL53L7CX_DCI_INTERNAL_CP: u16 = 0xB39C;
+pub const VL53L7CX_DCI_MOTION_DETECTOR_CFG: u16 = 0xBFAC;
+pub const VL53L7CX_DCI_SINGLE_RANGE: u16 = 0xCD5C;
+pub const VL53L7CX_DCI_OUTPUT_CONFIG: u16 = 0xCD60;
+pub const VL53L7CX_DCI_OUTPUT_ENABLES: u16 = 0xCD68;
+pub const VL53L7CX_DCI_OUTPUT_LIST: u16 = 0xCD78;
+pub const VL53L7CX_DCI_PIPE_CONTROL: u16 = 0xCF78;
+ 
+
+pub const VL53L7CX_UI_CMD_STATUS: u16 = 0x2C00;
+pub const VL53L7CX_UI_CMD_START: u16 = 0x2C04;
+pub const VL53L7CX_UI_CMD_END: u16 = 0x2FFF;
+
+/**
+ * @brief Inner values for API. Max buffer size depends of the selected output.
+ */
+const L5CX_AMB_SIZE: usize = if cfg!(feature = "VL53L7CX_DISABLE_AMBIENT_PER_SPAD") { 0 } else { 260 };
+const L5CX_SPAD_SIZE: usize = if cfg!(feature = "VL53L7CX_DISABLE_NB_SPADS_ENABLED") { 0 } else { 260 };
+const L5CX_NTAR_SIZE: usize = if cfg!(feature = "VL53L7CX_DISABLE_NB_TARGET_DETECTED") { 0 } else { 68 };
+const L5CX_SPS_SIZE: usize = if cfg!(feature = "VL53L7CX_DISABLE_SIGNAL_PER_SPAD") { 0 } else { 256 * VL53L7CX_NB_TARGET_PER_ZONE as usize + 4 };
+const L5CX_SIGR_SIZE: usize = if cfg!(feature = "VL53L7CX_DISABLE_RANGE_SIGMA_MM") { 0 } else { 256 * VL53L7CX_NB_TARGET_PER_ZONE as usize + 4 };
+const L5CX_DIST_SIZE: usize = if cfg!(feature = "VL53L7CX_DISABLE_DISTANCE_MM") { 0 } else { 256 * VL53L7CX_NB_TARGET_PER_ZONE as usize + 4 };
+const L5CX_RFLEST_SIZE: usize = if cfg!(feature = "VL53L7CX_DISABLE_REFLECTANCE_PERCENT") { 0 } else { 256 * VL53L7CX_NB_TARGET_PER_ZONE as usize + 4 };
+const L5CX_STA_SIZE: usize = if cfg!(feature = "VL53L7CX_DISABLE_TARGET_STATUS") { 0 } else { 256 * VL53L7CX_NB_TARGET_PER_ZONE as usize + 4 };
+const L5CX_MOT_SIZE: usize = if cfg!(feature = "VL53L7CX_DISABLE_MOTION_INDICATOR") { 0 } else { 144 };
+ /**
+ * @brief Macro VL53L7CX_MAX_RESULTS_SIZE indicates the maximum size used by
+ * output through I2C. Value 40 corresponds to headers + meta-data + common-data
+ * and 20 corresponds to the footer.
+ */
+const VL53L7CX_MAX_RESULTS_SIZE: usize = 40 
+    + L5CX_AMB_SIZE + L5CX_SPAD_SIZE + L5CX_NTAR_SIZE + L5CX_SPS_SIZE 
+    + L5CX_SIGR_SIZE + L5CX_DIST_SIZE + L5CX_RFLEST_SIZE + L5CX_STA_SIZE 
+    + L5CX_MOT_SIZE + 20;
+
+
+/**
+ * @brief Macro VL53L7CX_TEMPORARY_BUFFER_SIZE can be used to know the size of
+ * the temporary buffer. The minimum size is 1024, and the maximum depends of
+ * the output configuration.
+ */
+pub const VL53L7CX_TEMPORARY_BUFFER_SIZE: usize = 
+if VL53L7CX_MAX_RESULTS_SIZE < 1024 { 
+    1024
+} else {
+    VL53L7CX_MAX_RESULTS_SIZE 
+};
+
+/*
+ * @brief The macro below can be used to avoid data conversion into the driver.
+ * By default there is a conversion between firmware and user data. Using this macro
+ * allows to use the firmware format instead of user format. The firmware format allows
+ * an increased precision.
+ */
+pub const VL53L7CX_USE_RAW_FORMAT: u8 = 0;
+
+/*
+ * @brief The macro below is used to define the number of target per zone sent
+ * through I2C. This value can be changed by user, in order to tune I2C
+ * transaction, and also the total memory size (a lower number of target per
+ * zone means a lower RAM). The value must be between 1 and 4.
+ */
+pub const VL53L7CX_NB_TARGET_PER_ZONE: u32 = 1;
+
+/**
+ * Define the max chunk size of the written/read data for I2C/SPI transmission
+ */
+pub const I2C: bool = true;
+pub const SPI: bool = false;
+pub const BUS: bool = I2C;
+pub const CHUNK_SIZE: usize = if BUS == SPI { SPI_CHUNK_SIZE } else { I2C_CHUNK_SIZE };
+#[allow(dead_code)]
+pub const I2C_CHUNK_SIZE: usize = 32;
+#[allow(dead_code)]
+pub const SPI_CHUNK_SIZE: usize = 4096;
+
+
+/**
+ * @brief Macro VL53L7CX_NB_THRESHOLDS indicates the number of checkers. This
+ * value cannot be changed.
+ */
+#[allow(dead_code)]
+pub const VL53L7CX_NB_THRESHOLDS: usize = 64;
+/**
+ * @brief Macro VL53L7CX_LAST_THRESHOLD is used to indicate the end of checkers
+ * programming.
+ */
+#[allow(dead_code)]
+pub const VL53L7CX_LAST_THRESHOLD: u8 = 128;
+
+/**
+ * @brief Inner Macro for API. Not for user, only for development.
+ */
+#[allow(dead_code)]
+pub const VL53L7CX_DCI_DET_THRESH_CONFIG: u16 = 0x5488;
+#[allow(dead_code)]
+pub const VL53L7CX_DCI_DET_THRESH_GLOBAL_CONFIG: u16 = 0xB6E0;
+#[allow(dead_code)]
+pub const VL53L7CX_DCI_DET_THRESH_START: u16 = 0xB6E8;
+#[allow(dead_code)]
+pub const VL53L7CX_DCI_DET_THRESH_VALID_STATUS: u16 = 0xB9F0;
+/**
+ * @brief The following macro are used to define the 'param_type' of a checker.
+ * They indicate what is the measurement to catch.
+ */
+#[allow(dead_code)]
+pub const VL53L7CX_DISTANCE_MM: u8 = 1;
+#[allow(dead_code)]
+pub const VL53L7CX_SIGNAL_PER_SPAD_KCPS: u8 = 2;
+#[allow(dead_code)]
+pub const VL53L7CX_RANGE_SIGMA_MM: u8 = 4;
+#[allow(dead_code)]
+pub const VL53L7CX_AMBIENT_PER_SPAD_KCPS: u8 = 8;
+#[allow(dead_code)]
+pub const VL53L7CX_NB_TARGET_DETECTED: u8 = 9;
+#[allow(dead_code)]
+pub const VL53L7CX_TARGET_STATUS: u8 = 12;
+#[allow(dead_code)]
+pub const VL53L7CX_NB_SPADS_ENABLED: u8 = 13;
+#[allow(dead_code)]
+pub const VL53L7CX_MOTION_INDICATOR: u8 = 19;
+/**
+ * @brief Inner Macro for plugin. Not for user, only for development.
+ */
+pub const VL53L7CX_DCI_CAL_CFG: u16 = 0x5470;
+pub const VL53L7CX_DCI_XTALK_CFG: u16 = 0xAD94;
+
+/**
+ * @brief The following macro are used to define the 'type' of a checker.
+ * They indicate the window of measurements, defined by low and a high
+ * thresholds.
+ */
+pub const VL53L7CX_IN_WINDOW: u8 = 0;
+#[allow(dead_code)]
+pub const VL53L7CX_OUT_OF_WINDOW: u8 = 1;
+#[allow(dead_code)]
+pub const VL53L7CX_LESS_THAN_EQUAL_MIN_CHECKER: u8 = 2;
+#[allow(dead_code)]
+pub const VL53L7CX_GREATER_THAN_MAX_CHECKER: u8 = 3;
+#[allow(dead_code)]
+pub const VL53L7CX_EQUAL_MIN_CHECKER: u8 = 4;
+#[allow(dead_code)]
+pub const VL53L7CX_NOT_EQUAL_MIN_CHECKER: u8 = 5;
+/**
+ * @brief The following macro are used to define multiple checkers in the same
+ * zone, using operators. Please note that the first checker MUST always be a OR
+ * operation.
+ */
+
+pub const VL53L7CX_OPERATION_NONE: u8 = 0;
+#[allow(dead_code)]
+pub const VL53L7CX_OPERATION_OR: u8 = 0;
+#[allow(dead_code)]
+pub const VL53L7CX_OPERATION_AND: u8 = 2;
