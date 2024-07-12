@@ -26,7 +26,7 @@ use stm32f4xx_hal::{
         Input,
         Output, 
         Pin, 
-        PinState::High,
+        PinState::{High, Low},
         gpioa, 
         gpiob,
         Alternate}, 
@@ -63,14 +63,14 @@ fn write_results(tx: &mut Tx<USART2>, results: &ResultsData, width: usize) {
     ).unwrap();
 
     for j in 0..width {
-        for _ in 0..width { write!(tx, "+--------").unwrap(); } writeln!(tx, "+").unwrap();
+        for _ in 0..width { write!(tx, "+----------").unwrap(); } writeln!(tx, "+").unwrap();
         
         #[cfg(not(any(feature="VL53L7CX_DISABLE_DISTANCE_MM", feature="VL53L7CX_DISABLE_TARGET_STATUS")))]
         {
             for i in 0..width {
                 write!(
                     tx, 
-                    "|\x1b[96m{dis:>5}\x1b[0m \x1b[92m{sta:<2}\x1b[0m", 
+                    "|\x1b[96m{dis:>5}\x1b[0m \x1b[92m{sta:<4}\x1b[0m", 
                 dis=results.distance_mm[width*j+i], 
                 sta=results.target_status[width*j+i]
                 ).unwrap();
@@ -84,14 +84,14 @@ fn write_results(tx: &mut Tx<USART2>, results: &ResultsData, width: usize) {
                 if sig > 9999 { sig = 9999; }
                 write!(
                     tx, 
-                    "|\x1b[93m{sig:>5}\x1b[0m \x1b[91m{amb:<2}\x1b[0m", 
+                    "|\x1b[93m{sig:>5}\x1b[0m \x1b[91m{amb:<4}\x1b[0m", 
                     sig=sig, 
                     amb=results.ambient_per_spad[width*j+i]
                 ).unwrap();
             } write!(tx, "|\n").unwrap();
         }
     }
-    for _ in 0..width { write!(tx, "+--------").unwrap(); } writeln!(tx, "+").unwrap();
+    for _ in 0..width { write!(tx, "+----------").unwrap(); } writeln!(tx, "+").unwrap();
 
 }
 
@@ -116,6 +116,7 @@ fn main() -> ! {
     
     let _pwr_pin: Pin<'B', 0, Output> = gpiob.pb0.into_push_pull_output_in_state(High);
     let lpn_pin: Pin<'B', 4, Output> = gpiob.pb4.into_push_pull_output_in_state(High);
+    let _i2c_rst_pin: Pin<'B', 3, Output> = gpiob.pb3.into_push_pull_output_in_state(Low);
     let tx_pin: Pin<'A', 2, Alternate<7>> = gpioa.pa2.into_alternate();
     
     let mut int_pin: Pin<'A', 4> = gpioa.pa4.into_input().internal_pull_up(true);

@@ -278,8 +278,8 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
 
     pub fn read_from_register(&mut self, reg: u16, size: usize) -> Result<(), Error<B::Error>> {
             let mut read_size: usize;
-            for i in (0..size).step_by(CHUNK_SIZE) {
-                read_size = if size - i > CHUNK_SIZE { CHUNK_SIZE } else { size - i };
+            for i in (0..size).step_by(self.chunk_size) {
+                read_size = if size - i > self.chunk_size { self.chunk_size } else { size - i };
                 let a: u8 = (reg + i as u16 >> 8) as u8;
                 let b: u8 = (reg + i as u16 & 0xFF) as u8; 
                 self.bus.write_read(&[a, b], &mut self.temp_buffer[i..i+read_size]).map_err(Error::Bus)?;
@@ -298,9 +298,9 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
     pub fn write_multi_to_register(&mut self, reg: u16, wbuf: &[u8]) -> Result<(), Error<B::Error>> {
         let size = wbuf.len();
         let mut write_size: usize;
-        let mut tmp: [u8; CHUNK_SIZE] = [0; CHUNK_SIZE];
-        for i in (0..size).step_by(CHUNK_SIZE-2) {
-            write_size = if size - i > CHUNK_SIZE-2 { CHUNK_SIZE-2 } else { size - i };
+        let mut tmp: [u8; 32] = [0; 32];
+        for i in (0..size).step_by(self.chunk_size-2) {
+            write_size = if size - i > self.chunk_size-2 { self.chunk_size-2 } else { size - i };
             tmp[0] = (reg + i as u16 >> 8) as u8;
             tmp[1] = (reg + i as u16 & 0xFF) as u8;
             tmp[2..2+write_size].copy_from_slice(&wbuf[i..i+write_size]);
@@ -311,10 +311,10 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
    
     pub fn write_multi_to_register_temp_buffer(&mut self, reg: u16, size: usize) -> Result<(), Error<B::Error>> {       
         let mut write_size: usize;
-        let mut tmp: [u8; CHUNK_SIZE] = [0; CHUNK_SIZE];
+        let mut tmp: [u8; 32] = [0; 32];
         
-        for i in (0..size).step_by(CHUNK_SIZE-2) {
-            write_size = if size - i > CHUNK_SIZE-2 { CHUNK_SIZE-2 } else { size - i };
+        for i in (0..size).step_by(self.chunk_size-2) {
+            write_size = if size - i > self.chunk_size-2 { self.chunk_size-2 } else { size - i };
             tmp[0] = (reg + i as u16 >> 8) as u8;
             tmp[1] = (reg + i as u16 & 0xFF) as u8;
             tmp[2..2+write_size].copy_from_slice(&self.temp_buffer[i..i+write_size]);
@@ -348,7 +348,7 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         self.write_to_register(0x7fff, 0x02)?;
         let device_id: u8 = self.temp_buffer[0];
         let revision_id: u8 = self.temp_buffer[1];
-        if (device_id != 0xF0) || (revision_id != 0x0C) {
+        if (device_id != 0xF0) || (revision_id != 0x02) {
             return Err(Error::Other);
         }
 
@@ -470,15 +470,15 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
     pub fn init(&mut self) -> Result<(), Error<B::Error>> {
         let pipe_ctrl: [u8; 4] = [VL53L7CX_NB_TARGET_PER_ZONE as u8, 0x00, 0x01, 0x00];
         let single_range: [u32; 1] = [0x01];
-        let mut crc_checksum: [u32; 1] = [0];
 
+        /* SW reboot sequence */
         self.write_to_register(0x7fff, 0x00)?;
         self.write_to_register(0x0009, 0x04)?;
         self.write_to_register(0x000F, 0x40)?;
         self.write_to_register(0x000A, 0x03)?;
         self.read_from_register(0x7FFF, 1)?;
         self.write_to_register(0x000C, 0x01)?;
-
+      
         self.write_to_register(0x0101, 0x00)?;
         self.write_to_register(0x0102, 0x00)?;
         self.write_to_register(0x010A, 0x01)?;
@@ -489,7 +489,7 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         self.write_to_register(0x000C, 0x00)?;
         self.write_to_register(0x000F, 0x43)?;
         self.delay(1);
-
+      
         self.write_to_register(0x000F, 0x40)?;
         self.write_to_register(0x000A, 0x01)?;
         self.delay(100);
@@ -497,15 +497,13 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
 	    /* Wait for sensor booted (several ms required to get sensor ready ) */
         self.write_to_register(0x7fff, 0x00)?;
         self.poll_for_answer(1, 0, 0x06, 0xff, 1)?;
-
         self.write_to_register(0x000E, 0x01)?;
         self.write_to_register(0x7fff, 0x02)?;
 
         /* Enable FW access */
+        self.write_to_register(0x03, 0x0d)?;
         self.write_to_register(0x7fff, 0x01)?;
-        self.write_to_register(0x06, 0x01)?;
-        self.poll_for_answer(1, 0, 0x21, 0xFF, 0x4)?;
-
+        self.poll_for_answer(1, 0, 0x21, 0x10, 0x10)?;
         self.write_to_register(0x7fff, 0x00)?;
 
         /* Enable host access to GO1 */
@@ -532,10 +530,10 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         /* Wake up MCU */
         self.write_to_register(0x7fff, 0x00)?;
         self.read_from_register(0x7fff, 1)?;
-
+        self.write_to_register(0x0c, 0x00)?;
         self.write_to_register(0x7fff, 0x01)?;
-        // self.write_to_register(0x20, 0x07)?;
-        // self.write_to_register(0x20, 0x06)?;
+        self.write_to_register(0x20, 0x07)?;
+        self.write_to_register(0x20, 0x06)?;
 
         /* Download FW into VL53L7CX */
         self.write_to_register(0x7fff, 0x09)?;
@@ -544,14 +542,13 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         self.write_multi_to_register(0, &VL53L7CX_FIRMWARE[0x8000..0x10000])?;
         self.write_to_register(0x7fff, 0x0b)?;
         self.write_multi_to_register(0, &VL53L7CX_FIRMWARE[0x10000..])?;
-
         self.write_to_register(0x7fff, 0x01)?;
 
         /* Check if FW correctly downloaded */
+        self.write_to_register(0x7fff, 0x02)?;
+        self.write_to_register(0x03, 0x0d)?;
         self.write_to_register(0x7fff, 0x01)?;
-        self.write_to_register(0x06, 0x03)?;
-
-        self.delay(5);
+        self.poll_for_answer(1, 0, 0x21, 0x10, 0x10)?;
         self.write_to_register(0x7fff, 0x00)?;
         self.read_from_register(0x7fff, 1)?;
         self.write_to_register(0x0C, 0x01)?;
@@ -566,23 +563,12 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         self.read_from_register(0x7fff, 1)?;
         self.write_to_register(0x0C, 0x00)?;
         self.write_to_register(0x0B, 0x01)?;
-
         self.poll_for_mcu_boot()?;
-
         self.write_to_register(0x7fff, 0x02)?;
-
-        /* Firmware checksum */
-        self.read_from_register((0x812FFC & 0xFFFF) as u16, 4)?;
-        swap_buffer(&mut self.temp_buffer, 4);
-        from_u8_to_u32(&self.temp_buffer[..4], &mut crc_checksum);
-        if crc_checksum [0] != 0xc0b6c9e {
-            return Err(Error::CheckSumFail);
-        }
 
         /* Get offset NVM data and store them into the offset buffer */
         self.write_multi_to_register(0x2fd8, &VL53L7CX_GET_NVM_CMD)?;
         self.poll_for_answer(4, 0, VL53L7CX_UI_CMD_STATUS, 0xff, 2)?;
-
         self.read_from_register(VL53L7CX_UI_CMD_START, VL53L7CX_NVM_DATA_SIZE)?;
         self.offset_data.copy_from_slice(&self.temp_buffer[..VL53L7CX_OFFSET_BUFFER_SIZE]);
         self.send_offset_data(VL53L7CX_RESOLUTION_4X4)?;
@@ -695,12 +681,6 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
             return Err(Error::Other);
         }
 
-        /* Ensure that there is no laser safety fault */
-        self.dci_read_data(0xe0c4, 8)?;
-        if self.temp_buffer[0x6] != 0 {
-            return Err(Error::Other);
-        }
-
         Ok(())
     }
 
@@ -724,7 +704,7 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
             self.write_to_register(0x14, 0x01)?;
 
             /* Poll for G02 status 0 MCU stop */
-            while self.temp_buffer[0] & (0x80 as u8) >> 7 == 0x00 && timeout <= 500 {
+            while self.temp_buffer[0] & 0x80 >> 7 == 0x00 && timeout <= 500 {
                 self.read_from_register(0x6, 1)?;
                 self.delay(10);
 
