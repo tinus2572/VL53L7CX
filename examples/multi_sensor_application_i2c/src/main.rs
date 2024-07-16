@@ -35,9 +35,9 @@ use stm32f4xx_hal::{
 use embedded_hal_bus::i2c::RefCellDevice;
 
 fn write_results_multi(tx: &mut Tx<USART2>, results_top: &ResultsData, results_left: &ResultsData, results_right: &ResultsData, width: usize) {
-    writeln!(tx, "\x1B[2J").unwrap();
+    writeln!(tx, "\x1B[2H").unwrap();
 
-    writeln!(tx, "VL53L8A1 Multi Sensor demo application\n").unwrap();
+    writeln!(tx, "VL53L7A1 Multi Sensor demo application\n").unwrap();
     writeln!(tx, "Cell Format :\n").unwrap();
     writeln!(
         tx, 
@@ -143,7 +143,7 @@ fn main() -> ! {
     let i2c: StmI2c<I2C1> = I2c1::new(
         dp.I2C1,
         (scl, sda),
-        Mode::Standard{frequency:400.kHz()},
+        Mode::Standard{frequency:200.kHz()},
         &clocks);
         
     let i2c_bus: RefCell<StmI2c<I2C1>> = RefCell::new(i2c);
@@ -176,9 +176,9 @@ fn main() -> ! {
     sensor_left.init_sensor(address_left).unwrap(); 
     sensor_right.init_sensor(address_right).unwrap(); 
 
-    // sensor_top.set_resolution(resolution).unwrap();
-    // sensor_left.set_resolution(resolution).unwrap();
-    // sensor_right.set_resolution(resolution).unwrap();
+    sensor_top.set_frequency_hz(30).unwrap();
+    sensor_left.set_frequency_hz(30).unwrap();
+    sensor_right.set_frequency_hz(30).unwrap();
 
     sensor_top.start_ranging().unwrap();
     sensor_left.start_ranging().unwrap();

@@ -15,7 +15,7 @@ pub struct Vl53l7cxI2C<P> {
 }
 
 impl<P: I2c> Vl53l7cxI2C<P> {
-    pub fn new(i2c: P) -> Self {
+    pub(crate) fn new(i2c: P) -> Self {
         Vl53l7cxI2C { i2c: i2c, address: VL53L7CX_DEFAULT_I2C_ADDRESS }
     }
 }

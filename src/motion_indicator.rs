@@ -4,11 +4,8 @@ use utils::*;
 
 use crate::{consts, utils, BusOperation, Error, Vl53l7cx, OutputPin, DelayNs};
 
-/**
- * @brief Motion indicator internal configuration structure.
- */
+/// Motion indicator internal configuration structure.
 #[repr(C)]
-#[allow(dead_code)]
 pub struct MotionConfiguration {
     ref_bin_offset: i32,
     detection_threshold: u32,
@@ -32,8 +29,7 @@ pub struct MotionConfiguration {
 } 
 
 impl MotionConfiguration {
-    #[allow(dead_code)]
-    pub fn new() -> Self {
+        pub fn new() -> Self {
         MotionConfiguration { 
             ref_bin_offset: 13633, 
             detection_threshold: 2883584, 
@@ -82,7 +78,7 @@ impl MotionIndicator {
     }
 }
 
-pub fn from_u8_to_motion_indicator(src: &[u8], dst: &mut MotionIndicator) {
+pub(crate) fn from_u8_to_motion_indicator(src: &[u8], dst: &mut MotionIndicator) {
     let mut tmp: [u32; 1] = [0];
     from_u8_to_u32(&src[..4], &mut tmp);
     dst.global_indicator_1 = tmp[0];
@@ -95,8 +91,7 @@ pub fn from_u8_to_motion_indicator(src: &[u8], dst: &mut MotionIndicator) {
     from_u8_to_u32(&src[12..140], &mut dst.motion);
 }
 
-#[allow(dead_code)]
-pub fn from_u8_to_motion_configuration(src: &[u8], dst: &mut MotionConfiguration) {
+pub(crate) fn from_u8_to_motion_configuration(src: &[u8], dst: &mut MotionConfiguration) {
     let mut tmp: [i32; 1] = [0];
     from_u8_to_i32(&src[..4], &mut tmp);
     dst.ref_bin_offset = tmp[0];
@@ -127,7 +122,7 @@ pub fn from_u8_to_motion_configuration(src: &[u8], dst: &mut MotionConfiguration
     dst.indicator_format_2.copy_from_slice(&src[124..156]);
 }
 
-pub fn from_motion_configuration_to_u8(src: &MotionConfiguration, dst: &mut [u8]) {
+pub(crate) fn from_motion_configuration_to_u8(src: &MotionConfiguration, dst: &mut [u8]) {
     from_i32_to_u8(&[src.ref_bin_offset], &mut dst[..4]);
     from_u32_to_u8(&[src.detection_threshold], &mut dst[4..8]);
     from_u32_to_u8(&[src.extra_noise_sigma], &mut dst[8..12]);
@@ -152,34 +147,25 @@ pub fn from_motion_configuration_to_u8(src: &MotionConfiguration, dst: &mut [u8]
 }
 
 impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
-    /**
-     * @brief This function is used to initialized the motion indicator. By default,
-     * indicator is programmed to monitor movements between 400mm and 1500mm.
-     * @param (MotionConfiguration) motion_config : Structure
-     * containing the initialized motion configuration.
-     * @param (u8) resolution : Wanted resolution, defined by macros
-     * VL53L7CX_RESOLUTION_4X4 or VL53L7CX_RESOLUTION_8X8.
-     */
-    #[allow(dead_code)]
-    fn motion_indicator_init(&mut self, resolution: u8) -> Result<(), Error<B::Error>> {
+    /// This function is used to initialized the motion indicator. By default, indicator is programmed to monitor movements between 400mm and 1500mm.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `motion_config` : Structure containing the initialized motion configuration.
+    /// * `resolution` : Wanted resolution, defined by macros VL53L8CX_RESOLUTION_4X4 or VL53L8CX_RESOLUTION_8X8.
+    pub fn motion_indicator_init(&mut self, resolution: u8) -> Result<(), Error<B::Error>> {
         let mut motion_config = MotionConfiguration::new();
         self.motion_indicator_set_resolution(&mut motion_config, resolution)?;
         Ok(())
     }
-/**
- * @brief This function can be used to change the working distance of motion
- * indicator. By default, indicator is programmed to monitor movements between
- * 400mm and 1500mm.
- * @param (&mut MotionConfiguration) motion_config : Structure
- * containing the initialized motion configuration.
- * @param (u16) distance_min_mm : Minimum distance for indicator (min value
- * 400mm, max 4000mm).
- * @param (u16) distance_max_mm : Maximum distance for indicator (min value
- * 400mm, max 4000mm).
- * VL53L7CX_RESOLUTION_4X4 or VL53L7CX_RESOLUTION_8X8.
- */
-    #[allow(dead_code)]
-    fn motion_indicator_set_distance_motion(&mut self, motion_config: &mut MotionConfiguration, distance_min_mm: u16, distance_max_mm: u16) -> Result<(), Error<B::Error>> {
+
+    /// This function can be used to change the working distance of motion indicator. By default, indicator is programmed to monitor movements between 400mm and 1500mm.
+    /// # Aguments
+    /// 
+    /// * `motion_config` : Structure containing the initialized motion configuration.
+    /// * `distance_min_mm` : Minimum distance for indicator (min value 400mm, max 4000mm).
+    /// * `distance_max_mm` : Maximum distance for indicator (min value 400mm, max 4000mm).
+    pub fn motion_indicator_set_distance_motion(&mut self, motion_config: &mut MotionConfiguration, distance_min_mm: u16, distance_max_mm: u16) -> Result<(), Error<B::Error>> {
         let mut tmp: f64;
         if distance_max_mm - distance_min_mm > 1500 || distance_max_mm > 4000 || distance_min_mm < 400 {
             return Err(Error::InvalidParam);
@@ -196,15 +182,14 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
 
         Ok(())
     }
-/**
- * @brief This function is used to update the internal motion indicator map.
- * @param (MotionConfiguration) motion_config : Structure
- * containing the initialized motion configuration.
- * @param (u8) resolution : Wanted SCI resolution, defined by macros
- * VL53L7CX_RESOLUTION_4X4 or VL53L7CX_RESOLUTION_8X8.
- */
-    #[allow(dead_code)]
-    fn motion_indicator_set_resolution(&mut self, motion_config: &mut MotionConfiguration, resolution: u8) -> Result<(), Error<B::Error>> {
+
+    /// This function is used to update the internal motion indicator map.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `motion_config` : Structure containing the initialized motion configuration.
+    /// * `resolution` : Wanted SCI resolution, defined by macros VL53L8CX_RESOLUTION_4X4 or VL53L8CX_RESOLUTION_8X8.
+    pub fn motion_indicator_set_resolution(&mut self, motion_config: &mut MotionConfiguration, resolution: u8) -> Result<(), Error<B::Error>> {
         if resolution == VL53L7CX_RESOLUTION_4X4 {
             for i in 0..VL53L7CX_RESOLUTION_4X4 as usize {
                 motion_config.map_id[i] = i as i8;

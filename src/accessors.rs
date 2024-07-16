@@ -6,11 +6,11 @@ use crate::{consts, utils, BusOperation, Vl53l7cx, Error, OutputPin, DelayNs};
 
 impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
     
-/**
- * @brief This function gets the current resolution (4x4 or 8x8).
- * @return (u8) resolution : Value of this pointer will be equal to 16
- * for 4x4 mode, and 64 for 8x8 mode.
- */
+    /// This function gets the current resolution (4x4 or 8x8).
+    /// 
+    /// # Return
+    /// 
+    /// `resolution` : Value of this pointer will be equal to 16 for 4x4 mode, and 64 for 8x8 mode.
     pub fn get_resolution(&mut self) -> Result<u8, Error<B::Error>> {
         self.dci_read_data(VL53L7CX_DCI_ZONE_CONFIG, 8)?;
         let resolution: u8 = self.temp_buffer[0x00] * self.temp_buffer[0x01];
@@ -18,11 +18,11 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         Ok(resolution)
     }
 
-/**
- * @brief This function sets a new resolution (4x4 or 8x8).
- * @param (u8) resolution : Use macro VL53L7CX_RESOLUTION_4X4 or
- * VL53L7CX_RESOLUTION_8X8 to set the resolution.
- */
+    /// This function sets a new resolution (4x4 or 8x8).
+    /// 
+    /// # Arguments
+    /// 
+    /// * `resolution` : Use macro VL53L7CX_RESOLUTION_4X4 or VL53L7CX_RESOLUTION_8X8 to set the resolution.
     pub fn set_resolution(&mut self, resolution: u8) -> Result<(), Error<B::Error>> {
 
         if resolution == VL53L7CX_RESOLUTION_4X4 {
@@ -58,14 +58,11 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         Ok(())
     }
 
-/**
- * @brief This function is used to get the current sensor power mode.
- * @return (u8) power_mode : Current power mode. The value of this
- * is equal to 0 if the sensor is in low power,
- * (VL53L7CX_POWER_MODE_SLEEP), or 1 if sensor is in standard mode
- * (VL53L7CX_POWER_MODE_WAKEUP).
- */
-    #[allow(dead_code)]
+    /// This function is used to get the current sensor power mode.
+    /// 
+    /// # Return
+    /// 
+    /// `power_mode` : Current power mode. The value of this is equal to 0 if the sensor is in low power, (VL53L7CX_POWER_MODE_SLEEP), or 1 if sensor is in standard mode (VL53L7CX_POWER_MODE_WAKEUP).
     pub fn get_power_mode(&mut self) -> Result<u8, Error<B::Error>> {
         let power_mode: u8;
         self.write_to_register(0x7fff, 0x00)?;
@@ -82,16 +79,11 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         Ok(power_mode)
     }
 
-/**
- * @brief This function is used to set the sensor in Low Power mode, for
- * example if the sensor is not used during a long time. The macro
- * VL53L7CX_POWER_MODE_SLEEP can be used to enable the low power mode. When user
- * want to restart the sensor, he can use macro VL53L7CX_POWER_MODE_WAKEUP.
- * Please ensure that the device is not streaming before calling the function.
- * @param (u8) power_mode : Selected power mode (VL53L7CX_POWER_MODE_SLEEP
- * or VL53L7CX_POWER_MODE_WAKEUP)
- */
-    #[allow(dead_code)]
+    /// This function is used to set the sensor in Low Power mode, for example if the sensor is not used during a long time. The macro VL53L7CX_POWER_MODE_SLEEP can be used to enable the low power mode. When user want to restart the sensor, he can use macro VL53L7CX_POWER_MODE_WAKEUP. Please ensure that the device is not streaming before calling the function.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `power_mode` : Selected power mode (VL53L7CX_POWER_MODE_SLEEP or VL53L7CX_POWER_MODE_WAKEUP)
     pub fn set_power_mode(&mut self, power_mode: u8) -> Result<(), Error<B::Error>> {
         let current_power_mode: u8 = self.get_power_mode()?;
         if power_mode != current_power_mode {
@@ -102,7 +94,7 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
             } else if power_mode == VL53L7CX_POWER_MODE_SLEEP {
                 self.write_to_register(0x7fff, 0x00)?;
                 self.write_to_register(0x09, 0x02)?;
-                self.poll_for_answer(1, 0, 0x06, 0x01, 1)?;
+                self.poll_for_answer(1, 0, 0x06, 0x01, 0)?;
             } else {
                 return Err(Error::Other);
             }
@@ -112,11 +104,11 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         Ok(())
     }
     
-    /**
-     * @brief This function gets the current target order (closest or strongest).
-     * @return (u8) target_order: Contains the target order.
-     */
-    #[allow(dead_code)]
+    /// This function gets the current target order (closest or strongest).
+    ///
+    /// # Return
+    /// 
+    /// `target_order` : Contains the target order.
     pub fn get_target_order(&mut self) -> Result<u8, Error<B::Error>> {
         let target_order: u8;
         self.dci_read_data(VL53L7CX_DCI_TARGET_ORDER, 4)?;
@@ -125,14 +117,11 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         Ok(target_order)
     }
 
-    /**
-     * @brief This function sets a new target order. Please use macros
-     * VL53L7CX_TARGET_ORDER_STRONGEST and VL53L7CX_TARGET_ORDER_CLOSEST to define
-     * the new output order. By default, the sensor is configured with the strongest
-     * output.
-     * @param (u8) target_order : Required target order.
-     */
-    #[allow(dead_code)]
+    /// This function sets a new target order. Please use macros VL53L7CX_TARGET_ORDER_STRONGEST and VL53L7CX_TARGET_ORDER_CLOSEST to define the new output order. By default, the sensor is configured with the strongest output.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `target_order` : Required target order.\
     pub fn set_target_order(&mut self, target_order: u8) -> Result<(), Error<B::Error>> {
         if target_order == VL53L7CX_TARGET_ORDER_CLOSEST || target_order == VL53L7CX_TARGET_ORDER_STRONGEST {
             self.dci_replace_data(VL53L7CX_DCI_TARGET_ORDER, 4, &[target_order], 1, 0x0)?;
@@ -141,12 +130,12 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         }
         Ok(())
     }
-/**
- * @brief This function gets the current sharpener in percent. Sharpener can be
- * changed to blur more or less zones depending of the application.
- * @return (u32) sharpener_percent: Contains the sharpener in percent.
- */
-    #[allow(dead_code)]
+
+    /// This function gets the current sharpener in percent. Sharpener can be changed to blur more or less zones depending of the application.
+    ///
+    /// # Return
+    /// 
+    /// `sharpener_percent` : Contains the sharpener in percent.
     pub fn get_sharpener_percent(&mut self) -> Result<u32, Error<B::Error>> {
         let sharpener_percent: u32;
         self.dci_read_data(VL53L7CX_DCI_SHARPENER, 16)?;
@@ -154,13 +143,12 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
 
         Ok(sharpener_percent)
     }
-/**
- * @brief This function sets a new sharpener value in percent. Sharpener can be
- * changed to blur more or less zones depending of the application. Min value is
- * 0 (disabled), and max is 99.
- * @param (u32) sharpener_percent : Value between 0 (disabled) and 99%.
- */
-    #[allow(dead_code)]
+    
+    /// This function sets a new sharpener value in percent. Sharpener can be changed to blur more or less zones depending of the application. Min value is 0 (disabled), and max is 99.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `sharpener_percent` : Value between 0 (disabled) and 99%.
     pub fn set_sharpener_percent(&mut self, sharpener_percent: u32) -> Result<(), Error<B::Error>> {
         let sharpener: u32;
         if sharpener_percent >= 100 {
@@ -172,11 +160,11 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         Ok(())
     }
 
-    /**
-     * @brief This function gets the current integration time in ms.
-     * @return (u32) *time_ms: Contains integration time in ms.
-     */
-    #[allow(dead_code)]
+    /// This function gets the current integration time in ms.
+    /// 
+    /// # Return
+    /// 
+    /// `time_ms`: Contains integration time in ms.
     pub fn get_integration_time(&mut self) -> Result<u32, Error<B::Error>> {
         let mut time_ms: [u32; 1] = [0];
         self.dci_read_data(VL53L7CX_DCI_INT_TIME, 20)?;
@@ -187,19 +175,15 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         Ok(time_ms[0])
     }
 
-/**
- * @brief This function sets a new integration time in ms. Integration time must
- * be computed to be lower than the ranging period, for a selected resolution.
- * Please note that this function has no impact on ranging mode continuous.
- * @param (u32) time_ms : Contains the integration time in ms. For all
- * resolutions and frequency, the minimum value is 2ms, and the maximum is
- * 1000ms.
- */
-    #[allow(dead_code)]
+    /// This function sets a new integration time in ms. Integration time must be computed to be lower than the ranging period, for a selected resolution. Please note that this function has no impact on ranging mode continuous.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `time_ms` : Contains the integration time in ms. For all resolutions and frequency, the minimum value is 2ms, and the maximum is 1000ms.
     pub fn set_integration_time(&mut self, integration_time_ms: u32) -> Result<(), Error<B::Error>> {
         let mut integration: u32 = integration_time_ms;
 
-        /* Integration time must be between 2ms and 1000ms */
+        // Integration time must be between 2ms and 1000ms 
         if integration < 2 || integration > 1000 {
             return Err(Error::InvalidParam);
         }
@@ -213,13 +197,12 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
 
         Ok(())
     }
-/**
- * @brief This function is used to get the ranging mode. Two modes are
- * available using ULD : Continuous and autonomous. The default
- * mode is Autonomous.
- * @return (u8) ranging_mode : current ranging mode
- */
-    #[allow(dead_code)]
+
+    /// This function is used to get the ranging mode. Two modes are available using ULD : Continuous and autonomous. The default mode is Autonomous.
+    ///
+    /// # Return
+    /// 
+    /// `ranging_mode` : current ranging mode
     pub fn get_ranging_mode(&mut self) -> Result<u8, Error<B::Error>> {
         let ranging_mode: u8;
         self.dci_read_data(VL53L7CX_DCI_RANGING_MODE, 8)?;
@@ -230,14 +213,12 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         }
         Ok(ranging_mode)
     }
-/**
- * @brief This function is used to set the ranging mode. Two modes are
- * available using ULD : Continuous and autonomous. The default
- * mode is Autonomous.
- * @param (u8) ranging_mode : Use macros VL53L7CX_RANGING_MODE_CONTINUOUS,
- * VL53L7CX_RANGING_MODE_CONTINUOUS.
- */
-    #[allow(dead_code)]
+
+    /// This function is used to set the ranging mode. Two modes are available using ULD : Continuous and autonomous. The default mode is Autonomous.
+    ///
+    /// # Arguments
+    /// 
+    /// * `ranging_mode` : Use macros VL53L7CX_RANGING_MODE_CONTINUOUS, VL53L7CX_RANGING_MODE_AUTONOMOUS.
     pub fn set_ranging_mode(&mut self, ranging_mode: u8) -> Result<(), Error<B::Error>> {
         let mut single_range: [u32; 1] = [0];
         self.dci_read_data(VL53L7CX_DCI_RANGING_MODE, 8)?;
@@ -246,7 +227,7 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
             self.temp_buffer[1] = 1;
             self.temp_buffer[3] = 3;
             single_range[0] = 0;
-        } else if ranging_mode == VL53L7CX_RANGING_MODE_CONTINUOUS {
+        } else if ranging_mode == VL53L7CX_RANGING_MODE_AUTONOMOUS {
             self.temp_buffer[1] = 3;
             self.temp_buffer[3] = 2;
             single_range[0] = 1;
@@ -262,12 +243,12 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         Ok(())
     }
 
-/**
- * @brief This function gets the current ranging frequency in Hz. Ranging
- * frequency corresponds to the time between each measurement.
- * @return (u8) frequency_hz: Contains the ranging frequency in Hz.
- */
-    #[allow(dead_code)]
+
+    /// This function gets the current ranging frequency in Hz. Ranging frequency corresponds to the time between each measurement.
+    ///
+    /// # Return
+    /// 
+    /// `frequency_hz` : Contains the ranging frequency in Hz.
     pub fn get_frequency_hz(&mut self) -> Result<u8, Error<B::Error>> {
         self.dci_read_data(VL53L7CX_DCI_FREQ_HZ, 4)?;
         let frequency_hz: u8 = self.temp_buffer[0x01];
@@ -275,15 +256,13 @@ impl<B: BusOperation, LPN: OutputPin, T: DelayNs> Vl53l7cx<B, LPN, T> {
         Ok(frequency_hz)
     }
 
-/**
- * @brief This function sets a new ranging frequency in Hz. Ranging frequency
- * corresponds to the measurements frequency. This setting depends of
- * the resolution, so please select your resolution before using this function.
- * @param (u8) frequency_hz : Contains the ranging frequency in Hz.
- * - For 4x4, min and max allowed values are : [1;60]
- * - For 8x8, min and max allowed values are : [1;15]
- */
-    #[allow(dead_code)]
+    /// This function sets a new ranging frequency in Hz. Ranging frequency corresponds to the measurements frequency. This setting depends of the resolution, so please select your resolution before using this function.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `frequency_hz` : Contains the ranging frequency in Hz.
+    ///  - For 4x4, min and max allowed values are : 1 to 60
+    ///  - For 8x8, min and max allowed values are : 1 to 15
     pub fn set_frequency_hz(&mut self, frequency_hz: u8) -> Result<(), Error<B::Error>> {
         let tmp: [u8; 1] = [frequency_hz];
         self.dci_replace_data(VL53L7CX_DCI_FREQ_HZ, 4, &tmp, 1, 0x01)?;
