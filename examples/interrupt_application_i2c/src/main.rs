@@ -7,6 +7,8 @@ use vl53l7cx::{
 
 use panic_halt as _; 
 use cortex_m_rt::entry;
+use cortex_m::{interrupt::Mutex, asm::wfi};
+
 
 use core::{fmt::Write, cell::RefCell};
 
@@ -14,13 +16,16 @@ use embedded_hal::i2c::SevenBitAddress;
 
 use stm32f4xx_hal::{
     gpio::{
+        self,
+        Input,
         Output, 
         Pin, 
         PinState::{High, Low},
+        Edge,
         gpioa, 
         gpiob,
         Alternate}, 
-    pac::{USART2, Peripherals, CorePeripherals, TIM1}, 
+    pac::{USART2, Peripherals, CorePeripherals, interrupt, TIM1}, 
     prelude::*, 
     serial::{Config, Tx}, 
     timer::{Delay, SysDelay},
@@ -37,7 +42,7 @@ fn write_results(tx: &mut Tx<USART2>, results: &ResultsData, width: usize) {
 
     writeln!(tx, "\x1B[2H").unwrap();
 
-    writeln!(tx, "VL53L7A1 Simple Ranging demo application\n").unwrap();
+    writeln!(tx, "VL53L7A1 Interrupt Ranging demo application\n").unwrap();
     writeln!(tx, "Cell Format :\n").unwrap();
     writeln!(
         tx, 
@@ -87,11 +92,14 @@ fn write_results(tx: &mut Tx<USART2>, results: &ResultsData, width: usize) {
 
 const WIDTH: usize = 4;
 
+static INT_PIN: Mutex<RefCell<Option<gpio::PA4<Input>>>> = Mutex::new(RefCell::new(None));
+
+
 #[entry]
 fn main() -> ! {
     let mut results: ResultsData = ResultsData::new();
     
-    let dp: Peripherals = Peripherals::take().unwrap();
+    let mut dp: Peripherals = Peripherals::take().unwrap();
     let cp: CorePeripherals = CorePeripherals::take().unwrap();
     let rcc: Rcc = dp.RCC.constrain();
     let clocks: Clocks = rcc.cfgr.use_hse(8.MHz()).sysclk(48.MHz()).freeze();
@@ -115,6 +123,27 @@ fn main() -> ! {
         .parity_none(),
         &clocks).unwrap();
     
+    let mut int_pin: Pin<'A', 4> = gpioa.pa4.into_input().internal_pull_up(true);
+    // Configure Pin for Interrupts
+    // 1) Promote SYSCFG structure to HAL to be able to configure interrupts
+    let mut syscfg = dp.SYSCFG.constrain();
+    // 2) Make an interrupt source
+    int_pin.make_interrupt_source(&mut syscfg);
+    // 3) Make an interrupt source  
+    int_pin.trigger_on_edge(&mut dp.EXTI, Edge::Falling);
+    // 4) Enable gpio interrupt
+    int_pin.enable_interrupt(&mut dp.EXTI);
+
+    // Enable the external interrupt in the NVIC by passing the interrupt number
+    unsafe {
+        cortex_m::peripheral::NVIC::unmask(int_pin.interrupt());
+    }
+
+    // Now that pin is configured, move pin into global context
+    cortex_m::interrupt::free(|cs| {
+        INT_PIN.borrow(cs).replace(Some(int_pin));
+    });
+
     let resolution: u8 = (WIDTH * WIDTH) as u8;
 
     
@@ -139,15 +168,26 @@ fn main() -> ! {
     sensor_top.init_sensor(address).unwrap(); 
     
     sensor_top.set_resolution(resolution).unwrap();
-    sensor_top.set_frequency_hz(30).unwrap();
     sensor_top.start_ranging().unwrap();
 
     write_results(&mut tx, &results, WIDTH);
     
     loop {
-        while !sensor_top.check_data_ready().unwrap() {} // Wait for data to be ready
+        wfi(); // Wait for data to be ready
         results = sensor_top.get_ranging_data().unwrap(); // Get and parse the result data
         write_results(&mut tx, &results, WIDTH); // Print the result to the output
     }
 
 } 
+
+#[interrupt]
+fn EXTI4() {
+    // Start a Critical Section
+    cortex_m::interrupt::free(|cs| {
+        // Obtain Access to Global Data
+        //INTERRUPT.borrow(cs).set(true);
+        // Obtain access to Peripheral and Clear Interrupt Pending Flag
+        let mut int_pin = INT_PIN.borrow(cs).borrow_mut();
+        int_pin.as_mut().unwrap().clear_interrupt_pending_bit();
+    });
+}
