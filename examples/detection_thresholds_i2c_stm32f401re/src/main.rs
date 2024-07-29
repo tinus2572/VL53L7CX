@@ -157,7 +157,7 @@ fn main() -> ! {
     let i2c: StmI2c<I2C1> = I2c1::new(
         dp.I2C1,
         (scl, sda),
-        Mode::Standard{frequency:200.kHz()},
+        Mode::Standard{frequency:400.kHz()},
         &clocks);
         
     let i2c_bus: RefCell<StmI2c<I2C1>> = RefCell::new(i2c);
